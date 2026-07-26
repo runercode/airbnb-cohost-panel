@@ -7,9 +7,10 @@ export function middleware(request: NextRequest) {
   const sessionId = request.cookies.get(SESSION_COOKIE)?.value;
   const { pathname } = request.nextUrl;
 
-  // Allow login page and API routes without auth
+  // Allow login page, register page, and API routes without auth
   if (
     pathname.startsWith("/login") ||
+    pathname.startsWith("/register") ||
     pathname.startsWith("/api/auth")
   ) {
     return NextResponse.next();

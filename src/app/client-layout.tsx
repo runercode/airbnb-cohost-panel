@@ -6,7 +6,7 @@ import { Toaster } from "react-hot-toast";
 
 export default function ClientLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const isStandalone = pathname === "/login" || pathname.startsWith("/client");
+  const isStandalone = pathname === "/login" || pathname === "/register" || pathname.startsWith("/client");
 
   return (
     <div className="flex min-h-screen">

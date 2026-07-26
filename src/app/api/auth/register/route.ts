@@ -1,14 +1,8 @@
 import { NextResponse } from "next/server";
 import { getStore } from "@/lib/db";
-import { hashPassword, requireAdmin } from "@/lib/auth";
+import { hashPassword } from "@/lib/auth";
 
 export async function POST(request: Request) {
-  try {
-    await requireAdmin();
-  } catch (e: any) {
-    return NextResponse.json({ error: e.message || "Forbidden" }, { status: 403 });
-  }
-
   const { email, password, name } = await request.json();
 
   if (!email || !password || !name) {

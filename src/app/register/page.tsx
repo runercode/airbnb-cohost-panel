@@ -4,39 +4,37 @@ import { useState, FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
 
-export default function LoginPage() {
+export default function RegisterPage() {
   const router = useRouter();
+  const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
+    if (password.length < 4) {
+      toast.error("Password must be at least 4 characters");
+      return;
+    }
     setLoading(true);
 
     try {
-      const res = await fetch("/api/auth/login", {
+      const res = await fetch("/api/auth/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ email, password, name }),
       });
 
       const data = await res.json();
 
       if (!res.ok) {
-        toast.error(data.error || "Login failed");
+        toast.error(data.error || "Registration failed");
         return;
       }
 
-      toast.success(`Welcome back, ${data.user.name}!`);
-
-      // Redirect based on role
-      if (data.user.role === "admin") {
-        router.push("/");
-      } else {
-        router.push("/client");
-      }
-      router.refresh();
+      toast.success("Account created! You can now sign in.");
+      router.push("/login");
     } catch {
       toast.error("Network error. Please try again.");
     } finally {
@@ -49,14 +47,34 @@ export default function LoginPage() {
       <div className="w-full max-w-md p-8 bg-white dark:bg-gray-800 rounded-2xl shadow-lg">
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-            Cohost Panel
+            Create Account
           </h1>
           <p className="mt-2 text-gray-500 dark:text-gray-400">
-            Sign in to manage your properties
+            Sign up to view your properties and bookings
           </p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-5">
+          <div>
+            <label
+              htmlFor="name"
+              className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+            >
+              Full Name
+            </label>
+            <input
+              id="name"
+              type="text"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              required
+              className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg 
+                         bg-white dark:bg-gray-700 text-gray-900 dark:text-white
+                         focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+              placeholder="John Doe"
+            />
+          </div>
+
           <div>
             <label
               htmlFor="email"
@@ -73,7 +91,7 @@ export default function LoginPage() {
               className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg 
                          bg-white dark:bg-gray-700 text-gray-900 dark:text-white
                          focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
-              placeholder="admin@cohost.local"
+              placeholder="you@example.com"
             />
           </div>
 
@@ -90,6 +108,7 @@ export default function LoginPage() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
+              minLength={4}
               className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg 
                          bg-white dark:bg-gray-700 text-gray-900 dark:text-white
                          focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
@@ -103,18 +122,18 @@ export default function LoginPage() {
             className="w-full py-2.5 px-4 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 
                        text-white font-semibold rounded-lg transition-colors"
           >
-            {loading ? "Signing in..." : "Sign In"}
+            {loading ? "Creating account..." : "Create Account"}
           </button>
         </form>
 
         <div className="mt-6 text-center">
           <p className="text-sm text-gray-500 dark:text-gray-400">
-            Are you a property owner?{" "}
+            Already have an account?{" "}
             <a
-              href="/register"
+              href="/login"
               className="text-blue-600 hover:text-blue-700 dark:text-blue-400 font-medium"
             >
-              Create an account
+              Sign in
             </a>
           </p>
         </div>
