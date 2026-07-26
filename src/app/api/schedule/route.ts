@@ -7,7 +7,7 @@ export async function GET() {
   const user = await getSessionUser();
   const userId = user?.role === "client" ? user.id : undefined;
   const schedules = await store.allSchedule(userId);
-  return NextResponse.json(schedules);
+  return NextResponse.json({ schedules });
 }
 
 export async function POST(request: Request) {

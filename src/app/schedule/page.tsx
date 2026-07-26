@@ -19,7 +19,7 @@ export default function SchedulePage() {
       fetch("/api/bookings").then((r) => r.json()),
     ])
       .then(([s, c, b]) => {
-        setSchedules(s);
+        setSchedules(Array.isArray(s?.schedules) ? s.schedules : Array.isArray(s) ? s : []);
         setCleaners(c);
         setBookings(b.bookings || []);
       })

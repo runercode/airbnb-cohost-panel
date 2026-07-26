@@ -47,7 +47,6 @@ export default function ClientPage() {
   const [properties, setProperties] = useState<Property[]>([]);
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [schedule, setSchedule] = useState<CleaningTask[]>([]);
-  const [settings, setSettings] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
 
   const [showPropForm, setShowPropForm] = useState(false);
@@ -56,29 +55,16 @@ export default function ClientPage() {
 
   const [syncing, setSyncing] = useState<Record<number, boolean>>({});
 
-  const [msgBooking, setMsgBooking] = useState<number>(0);
-  const [msgChannel, setMsgChannel] = useState<"email" | "sms">("email");
-  const [msgContent, setMsgContent] = useState("");
-  const [sendingMsg, setSendingMsg] = useState(false);
-
-  const [savingSettings, setSavingSettings] = useState(false);
-  const [fwdEmail, setFwdEmail] = useState("");
-  const [fwdPhone, setFwdPhone] = useState("");
-
   const fetchAll = useCallback(() => {
     Promise.all([
       fetch("/api/properties").then(r => r.json()),
       fetch("/api/bookings").then(r => r.json()),
       fetch("/api/schedule").then(r => r.json()),
-      fetch("/api/settings").then(r => r.json()),
     ])
-      .then(([p, b, s, st]) => {
-        setProperties(p.properties || []);
-        setBookings(b.bookings || []);
-        setSchedule(s || []);
-        setSettings(st || {});
-        setFwdEmail(st?.forward_email || "");
-        setFwdPhone(st?.forward_phone || "");
+      .then(([p, b, s]) => {
+        setProperties(Array.isArray(p?.properties) ? p.properties : []);
+        setBookings(Array.isArray(b?.bookings) ? b.bookings : []);
+        setSchedule(Array.isArray(s?.schedules) ? s.schedules : Array.isArray(s) ? s : []);
       })
       .catch(() => toast.error("Failed to load data"))
       .finally(() => setLoading(false));
@@ -141,42 +127,6 @@ export default function ClientPage() {
     setSyncing(s => ({ ...s, [propertyId]: false }));
   }
 
-  async function handleSendMessage(e: FormEvent) {
-    e.preventDefault();
-    if (!msgBooking || !msgContent.trim()) { toast.error("Select a booking and type a message"); return; }
-    setSendingMsg(true);
-    const res = await fetch("/api/messages", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        booking_id: msgBooking,
-        direction: "outbound",
-        channel: msgChannel,
-        content: msgContent,
-      }),
-    });
-    if (res.ok) {
-      toast.success("Message sent!");
-      setMsgContent("");
-    } else {
-      const d = await res.json();
-      toast.error(d.error || "Failed to send");
-    }
-    setSendingMsg(false);
-  }
-
-  async function handleSaveSettings(e: FormEvent) {
-    e.preventDefault();
-    setSavingSettings(true);
-    const res = await fetch("/api/settings", {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ forward_email: fwdEmail, forward_phone: fwdPhone }),
-    });
-    if (res.ok) { toast.success("Settings saved!"); } else { toast.error("Failed to save"); }
-    setSavingSettings(false);
-  }
-
   async function handleLogout() {
     await fetch("/api/auth/logout", { method: "POST" });
     router.push("/login");
@@ -190,8 +140,8 @@ export default function ClientPage() {
     );
   }
 
-  const activeBookings = bookings.filter(b => new Date(b.check_out) >= new Date());
-  const pastBookings = bookings.filter(b => new Date(b.check_out) < new Date()).slice(0, 5);
+  const activeBookings = (bookings || []).filter(b => new Date(b.check_out) >= new Date());
+  const pastBookings = (bookings || []).filter(b => new Date(b.check_out) < new Date()).slice(0, 5);
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
@@ -208,6 +158,55 @@ export default function ClientPage() {
       </header>
 
       <main className="max-w-6xl mx-auto px-6 py-8 space-y-8">
+        {/* AIRBNB CO-HOST SETUP INSTRUCTIONS */}
+        <section className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/30 dark:to-indigo-900/30 rounded-xl border border-blue-200 dark:border-blue-800 p-6">
+          <h2 className="text-lg font-semibold text-blue-900 dark:text-blue-100 mb-3 flex items-center gap-2">
+            <span>🔗</span> How to Connect with Your Co-Host on Airbnb
+          </h2>
+          <p className="text-sm text-blue-800 dark:text-blue-200 mb-4">
+            Follow these steps once so your co-host handles all guest communication — guests will message them, not you.
+          </p>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div>
+              <ol className="space-y-3 text-sm text-blue-800 dark:text-blue-200">
+                <li className="flex gap-2">
+                  <span className="flex-shrink-0 w-6 h-6 rounded-full bg-blue-600 text-white flex items-center justify-center text-xs font-bold">1</span>
+                  <span>Go to <strong>Airbnb → Listings → [Your Property] → Co-hosts</strong></span>
+                </li>
+                <li className="flex gap-2">
+                  <span className="flex-shrink-0 w-6 h-6 rounded-full bg-blue-600 text-white flex items-center justify-center text-xs font-bold">2</span>
+                  <span>Click <strong>Invite a co-host</strong> and enter your co-host&apos;s email address</span>
+                </li>
+                <li className="flex gap-2">
+                  <span className="flex-shrink-0 w-6 h-6 rounded-full bg-blue-600 text-white flex items-center justify-center text-xs font-bold">3</span>
+                  <span>Once they accept, set permissions: turn <strong>ON</strong> &quot;Message guests&quot;</span>
+                </li>
+                <li className="flex gap-2">
+                  <span className="flex-shrink-0 w-6 h-6 rounded-full bg-blue-600 text-white flex items-center justify-center text-xs font-bold">4</span>
+                  <span>Go to <strong>Booking settings → Who guests message</strong> and select your co-host</span>
+                </li>
+                <li className="flex gap-2">
+                  <span className="flex-shrink-0 w-6 h-6 rounded-full bg-blue-600 text-white flex items-center justify-center text-xs font-bold">5</span>
+                  <span>Come back here and click <strong>Sync Airbnb Calendar</strong> to pull in your bookings</span>
+                </li>
+              </ol>
+            </div>
+            <div className="flex flex-col justify-center p-4 bg-white dark:bg-gray-800 rounded-lg border border-blue-100 dark:border-blue-800">
+              <p className="text-xs text-gray-600 dark:text-gray-400 mb-3 font-medium">📌 How to get your iCal URL:</p>
+              <ol className="text-xs text-gray-500 dark:text-gray-400 space-y-1">
+                <li>1. Airbnb → Calendar</li>
+                <li>2. Click Availability settings</li>
+                <li>3. Scroll to &quot;Export Calendar&quot;</li>
+                <li>4. Copy the iCal link</li>
+                <li>5. Paste it when adding a property below</li>
+              </ol>
+              <div className="mt-3 p-2 bg-green-50 dark:bg-green-900/30 rounded text-xs text-green-700 dark:text-green-300">
+                ✅ Done! All guest messages now go to your co-host on Airbnb — you just sync your calendar here to stay updated.
+              </div>
+            </div>
+          </div>
+        </section>
+
         {/* ADD PROPERTY */}
         <section className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
           <div className="flex items-center justify-between mb-4">
@@ -219,7 +218,7 @@ export default function ClientPage() {
             )}
           </div>
 
-          {properties.length === 0 && !showPropForm && (
+          {(properties?.length ?? 0) === 0 && !showPropForm && (
             <div className="text-center py-8">
               <p className="text-gray-500 dark:text-gray-400 mb-2">No properties yet.</p>
               <p className="text-sm text-gray-400 dark:text-gray-500">
@@ -270,9 +269,9 @@ export default function ClientPage() {
             </form>
           )}
 
-          {properties.length > 0 && (
+          {(properties?.length ?? 0) > 0 && (
             <div className="grid gap-4 sm:grid-cols-2 mt-4">
-              {properties.map(p => (
+              {(properties || []).map(p => (
                 <div key={p.id} className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 bg-gray-50 dark:bg-gray-700/50">
                   <div className="flex items-start justify-between">
                     <div>
@@ -298,7 +297,7 @@ export default function ClientPage() {
         {/* ACTIVE BOOKINGS */}
         <section className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
           <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">📅 Active Bookings</h2>
-          {activeBookings.length === 0 ? (
+          {(activeBookings?.length ?? 0) === 0 ? (
             <p className="text-gray-400 text-sm text-center py-6">No upcoming bookings. Add a property and sync your Airbnb calendar.</p>
           ) : (
             <div className="overflow-x-auto">
@@ -313,7 +312,7 @@ export default function ClientPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {activeBookings.map(b => (
+                  {(activeBookings || []).map(b => (
                     <tr key={b.id} className="border-t border-gray-100 dark:border-gray-700">
                       <td className="px-4 py-3 text-gray-900 dark:text-white font-medium">{b.guest_name}</td>
                       <td className="px-4 py-3 text-gray-600 dark:text-gray-400">{b.property_name || `#${b.property_id}`}</td>
@@ -332,66 +331,14 @@ export default function ClientPage() {
           )}
         </section>
 
-        {/* SEND MESSAGE */}
-        <section className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
-          <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">💬 Message a Guest</h2>
-          {activeBookings.length === 0 ? (
-            <p className="text-gray-400 text-sm">No bookings to message yet.</p>
-          ) : (
-            <form onSubmit={handleSendMessage} className="space-y-4">
-              <div className="grid gap-4 sm:grid-cols-3">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Guest</label>
-                  <select
-                    value={msgBooking}
-                    onChange={e => setMsgBooking(Number(e.target.value))}
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-blue-500 outline-none"
-                  >
-                    <option value={0}>Select a guest...</option>
-                    {activeBookings.map(b => (
-                      <option key={b.id} value={b.id}>{b.guest_name} ({b.property_name}) — {b.check_in} to {b.check_out}</option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Channel</label>
-                  <select
-                    value={msgChannel}
-                    onChange={e => setMsgChannel(e.target.value as "email" | "sms")}
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-blue-500 outline-none"
-                  >
-                    <option value="email">📧 Email</option>
-                    <option value="sms">📱 SMS</option>
-                  </select>
-                </div>
-                <div className="flex items-end">
-                  <button type="submit" disabled={sendingMsg || !msgBooking} className="w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white py-2 px-4 rounded-lg text-sm font-medium">
-                    {sendingMsg ? "Sending..." : "Send"}
-                  </button>
-                </div>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Message</label>
-                <textarea
-                  value={msgContent}
-                  onChange={e => setMsgContent(e.target.value)}
-                  placeholder={`Hi,\n\nLooking forward to your stay! Here are check-in details...\n\n— ${user?.name || "Your Host"}`}
-                  rows={3}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-blue-500 outline-none resize-none"
-                />
-              </div>
-            </form>
-          )}
-        </section>
-
         {/* CLEANING */}
         <section className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
           <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">🧹 Cleaning Schedule</h2>
-          {schedule.filter(s => s.status === "scheduled" || s.status === "pending").length === 0 ? (
-            <p className="text-gray-400 text-sm text-center py-4">No scheduled cleanings yet. They auto-populate on checkout dates.</p>
+          {((schedule || []).filter(s => s.status === "scheduled" || s.status === "pending").length === 0) ? (
+            <p className="text-gray-400 text-sm text-center py-4">No scheduled cleanings yet. They auto-populate on checkout dates after you sync.</p>
           ) : (
             <div className="space-y-2">
-              {schedule.filter(s => s.status === "scheduled" || s.status === "pending").slice(0, 8).map(cs => (
+              {(schedule || []).filter(s => s.status === "scheduled" || s.status === "pending").slice(0, 8).map(cs => (
                 <div key={cs.id} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
                   <div>
                     <p className="text-sm font-medium text-gray-900 dark:text-white">{cs.property_name || "Property"}</p>
@@ -404,43 +351,12 @@ export default function ClientPage() {
           )}
         </section>
 
-        {/* FORWARDING */}
-        <section className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
-          <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">📧 Forwarding Settings</h2>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">Where guest messages and replies get forwarded to.</p>
-          <form onSubmit={handleSaveSettings} className="space-y-4">
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Email</label>
-                <input
-                  value={fwdEmail}
-                  onChange={e => setFwdEmail(e.target.value)}
-                  placeholder="you@gmail.com"
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-blue-500 outline-none"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Phone (SMS)</label>
-                <input
-                  value={fwdPhone}
-                  onChange={e => setFwdPhone(e.target.value)}
-                  placeholder="+1234567890"
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-blue-500 outline-none"
-                />
-              </div>
-            </div>
-            <button type="submit" disabled={savingSettings} className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white px-4 py-2 rounded-lg text-sm font-medium">
-              {savingSettings ? "Saving..." : "💾 Save"}
-            </button>
-          </form>
-        </section>
-
         {/* PAST BOOKINGS */}
-        {pastBookings.length > 0 && (
+        {(pastBookings?.length ?? 0) > 0 && (
           <section className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
             <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">📋 Recent Past Bookings</h2>
             <div className="space-y-2">
-              {pastBookings.map(b => (
+              {(pastBookings || []).map(b => (
                 <div key={b.id} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
                   <div>
                     <p className="text-sm font-medium text-gray-900 dark:text-white">{b.guest_name}</p>
