@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
 import { getStore } from "@/lib/db";
-import { requireAdmin } from "@/lib/auth";
 
 export async function GET() {
   const store = await getStore();
@@ -9,12 +8,6 @@ export async function GET() {
 }
 
 export async function PUT(request: Request) {
-  try {
-    await requireAdmin();
-  } catch (e: any) {
-    return NextResponse.json({ error: e.message || "Forbidden" }, { status: 403 });
-  }
-
   const store = await getStore();
   const body = await request.json();
   const settings: Record<string, string> = {};
