@@ -299,17 +299,17 @@ export class Store {
     const bookings = await this.allBookings(userId);
     const today = new Date().toISOString().split('T')[0];
     const tomorrow = new Date(Date.now() + 86400000).toISOString().split('T')[0];
+    const now = new Date().toISOString();
     return {
-      totalBookings: bookings.length,
-      upcomingCheckins: bookings.filter(b => b.check_in >= today).length,
-      upcomingCheckouts: bookings.filter(b => b.check_out >= today).length,
-      pendingCleanings: this.data.cleaningSchedule.filter(cs => cs.status === 'scheduled').length,
-      todayCheckins: bookings.filter(b => b.check_in === today).length,
-      todayCheckouts: bookings.filter(b => b.check_out === today).length,
-      tomorrowCheckins: bookings.filter(b => b.check_in === tomorrow).length,
-      tomorrowCheckouts: bookings.filter(b => b.check_out === tomorrow).length,
+      stats: {
+        totalBookings: bookings.length,
+        upcomingCheckins: bookings.filter(b => b.check_in >= today).length,
+        upcomingCheckouts: bookings.filter(b => b.check_out >= today).length,
+        pendingCleanings: this.data.cleaningSchedule.filter(cs => cs.status === 'scheduled').length,
+        activeBookings: bookings.filter(b => b.check_in <= now && b.check_out >= now).length,
+      },
       recentBookings: bookings.slice(0, 5),
-      upcomingSchedule: (await this.allSchedule(userId)).slice(0, 5),
+      upcomingCleanings: (await this.allSchedule(userId)).slice(0, 5),
     };
   }
 }

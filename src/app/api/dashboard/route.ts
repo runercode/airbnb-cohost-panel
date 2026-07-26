@@ -7,5 +7,5 @@ export async function GET() {
   const user = await getSessionUser();
   const userId = user?.role === "client" ? user.id : undefined;
   const stats = await store.getDashboardStats(userId);
-  return NextResponse.json({ stats });
+  return NextResponse.json(stats);
 }

@@ -11,6 +11,11 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
+  const user = await getSessionUser();
+  if (!user) {
+    return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
+  }
+
   const store = await getStore();
   const body = await request.json();
   const { booking_id, cleaner_id, scheduled_date, notes } = body;

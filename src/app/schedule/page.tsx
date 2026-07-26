@@ -13,7 +13,7 @@ export default function SchedulePage() {
   const [form, setForm] = useState({ booking_id: "", cleaner_id: "", scheduled_date: "", notes: "" });
 
   const fetchAll = useCallback(() => {
-    Promise.all([
+    return Promise.all([
       fetch("/api/schedule").then((r) => r.json()),
       fetch("/api/cleaners").then((r) => r.json()),
       fetch("/api/bookings").then((r) => r.json()),
@@ -27,8 +27,7 @@ export default function SchedulePage() {
   }, []);
 
   useEffect(() => {
-    fetchAll();
-    setLoading(false);
+    fetchAll().finally(() => setLoading(false));
   }, [fetchAll]);
 
   const handleAdd = async (e: React.FormEvent) => {

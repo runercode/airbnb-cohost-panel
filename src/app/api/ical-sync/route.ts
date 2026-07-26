@@ -1,8 +1,14 @@
 import { NextResponse } from "next/server";
 import { getStore } from "@/lib/db";
+import { getSessionUser } from "@/lib/auth";
 import { fetchAndParseICal, syncBookingsFromICal } from "@/lib/ical-parser";
 
 export async function POST(request: Request) {
+  const user = await getSessionUser();
+  if (!user) {
+    return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
+  }
+
   const { property_id } = await request.json();
 
   if (!property_id) {

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getStore } from "@/lib/db";
+import { getSessionUser } from "@/lib/auth";
 
 export async function GET() {
   const store = await getStore();
@@ -8,6 +9,11 @@ export async function GET() {
 }
 
 export async function PUT(request: Request) {
+  const user = await getSessionUser();
+  if (!user) {
+    return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
+  }
+
   const store = await getStore();
   const body = await request.json();
   const settings: Record<string, string> = {};

@@ -10,18 +10,14 @@ export default function CleanersPage() {
   const [form, setForm] = useState({ name: "", email: "", phone: "", rate: "" });
 
   const fetchCleaners = useCallback(() => {
-    fetch("/api/cleaners")
+    return fetch("/api/cleaners")
       .then((r) => r.json())
       .then(setCleaners)
       .catch(() => toast.error("Failed to load cleaners"));
   }, []);
 
   useEffect(() => {
-    fetch("/api/cleaners")
-      .then((r) => r.json())
-      .then(setCleaners)
-      .catch(() => toast.error("Failed to load cleaners"))
-      .finally(() => setLoading(false));
+    fetchCleaners().finally(() => setLoading(false));
   }, [fetchCleaners]);
 
   const handleAdd = async (e: React.FormEvent) => {
